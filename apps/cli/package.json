@@ -1,0 +1,18 @@
+{
+  "name": "@flavorpress/cli",
+  "version": "0.1.0",
+  "description": "Local CLI for FlavorPress Content Analyzer.",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "bin": {
+    "flavorpress-content": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node ../../scripts/make-executable.mjs dist/index.js",
+    "start": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@flavorpress/analyzer-core": "workspace:*"
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "name": "flavorpress-content-analyzer",
+  "version": "0.1.0",
+  "description": "Experimental local-first editorial content analysis toolkit for FlavorPress.",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "packageManager": "pnpm@10.10.0",
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=10.10.0"
+  },
+  "scripts": {
+    "build": "pnpm --filter @flavorpress/analyzer-core build && pnpm --filter @flavorpress/cli build && pnpm --filter @flavorpress/desktop build && pnpm plugin:build",
+    "test:wordpress-bundle:fresh": "pnpm --filter @flavorpress/analyzer-core build && node --test --test-name-pattern \"WordPress committed bundle matches the current source build\" tests/wordpress-bundle.test.mjs",
+    "test": "pnpm scan:names && pnpm test:wordpress-bundle:fresh && pnpm build && node --test tests/*.test.mjs && cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml",
+    "test:coverage": "pnpm scan:names && pnpm build && node --experimental-test-coverage --test-coverage-include=packages/analyzer-core/dist/**/*.js --test-coverage-lines=85 --test-coverage-branches=75 --test-coverage-functions=85 --test tests/*.test.mjs",
+    "check:security": "node scripts/check-security.mjs",
+    "check:quality": "pnpm test:coverage && pnpm check:security && pnpm benchmark:analysis && cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml",
+    "deps:outdated": "pnpm outdated --recursive",
+    "benchmark:analysis": "pnpm --filter @flavorpress/analyzer-core build && node scripts/benchmark-analysis.mjs",
+    "scan:names": "node scripts/check-name-boundaries.mjs",
+    "cli": "tsx apps/cli/src/index.ts",
+    "desktop:dev": "pnpm --filter @flavorpress/analyzer-core build && pnpm --filter @flavorpress/desktop tauri:dev",
+    "desktop:build": "pnpm --filter @flavorpress/analyzer-core build && pnpm --filter @flavorpress/desktop tauri:build",
+    "desktop:build:dmg": "node scripts/build-desktop-dmg.mjs",
+    "desktop:build:dmg:trusted": "node scripts/build-desktop-dmg-trusted.mjs",
+    "desktop:verify-dmg": "node scripts/check-desktop-dmg.mjs",
+    "desktop:verify-dmg:trusted": "node scripts/check-desktop-dmg.mjs --require-trusted",
+    "desktop:verify-shell": "node scripts/check-desktop-shell.mjs",
+    "desktop:verify-binary": "node scripts/check-desktop-binary.mjs",
+    "plugin:build": "pnpm --filter @flavorpress/analyzer-core build && pnpm --filter @flavorpress/wordpress-plugin build",
+    "plugin:zip": "WP_PLUGIN_BASE_ROOT=\"$PWD/plugins/wordpress\" bash plugins/wordpress/.wp-plugin-base/scripts/ci/build_zip.sh .wp-plugin-base.env"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

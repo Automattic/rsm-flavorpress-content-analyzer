@@ -1,0 +1,12 @@
+/.wp-plugin-base
+/.wp-plugin-base.env
+/.wp-plugin-base-security-suppressions.json
+/.distignore
+/src
+/scripts
+/package.json
+/vite.config.ts
+/node_modules
+/dist
+/*.log
+/*.tsbuildinfo

@@ -1,0 +1,8 @@
+{
+  "suppressions": [
+    {
+      "id": "fpca-public-frontend-report-create",
+      "reason": "The frontend report creation endpoint is intentionally public so visitors can run the block. It requires a REST nonce, input size limits, schema validation, rate limiting, and stores reports as untrusted snapshots for administrators."
+    }
+  ]
+}

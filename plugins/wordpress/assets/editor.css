@@ -1,0 +1,120 @@
+.fpca-block,
+.fpca-frontend-analyzer {
+  border: 1px solid #d5e0e1;
+  border-radius: 8px;
+  background: #fff;
+  padding: 16px;
+}
+
+.fpca-block--placeholder {
+  max-width: 720px;
+}
+
+.fpca-form {
+  display: grid;
+  gap: 12px;
+}
+
+.fpca-label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.fpca-label textarea,
+.fpca-label select {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.fpca-label textarea {
+  min-height: 150px;
+}
+
+.fpca-label--inline {
+  max-width: 240px;
+}
+
+.fpca-context-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.fpca-form button,
+.fpca-editor-sidebar .components-button.is-primary {
+  justify-self: start;
+}
+
+.fpca-status {
+  min-height: 20px;
+  margin: 0;
+}
+
+.fpca-report {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.fpca-report__headline {
+  margin: 0;
+  font-weight: 600;
+}
+
+.fpca-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fpca-stats span {
+  border-radius: 999px;
+  background: #dff3ef;
+  color: #0f655d;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+}
+
+.fpca-section {
+  display: grid;
+  gap: 6px;
+  border-top: 1px solid #d5e0e1;
+  padding-top: 12px;
+}
+
+.fpca-section h3 {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.fpca-section ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.fpca-section li {
+  margin-bottom: 6px;
+}
+
+.fpca-editor-sidebar {
+  padding: 16px;
+}
+
+.fpca-editor-stale {
+  border-left: 4px solid #dba617;
+  margin: 0;
+  padding: 8px 12px;
+  background: #fcf6e6;
+}
+
+.fpca-error {
+  color: #8a2424;
+  font-weight: 600;
+}
+
+.fpca-muted {
+  color: #64707d;
+}

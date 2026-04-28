@@ -1,0 +1,29 @@
+{
+  "name": "@flavorpress/desktop",
+  "version": "0.1.0",
+  "description": "Local Tauri desktop shell for FlavorPress Content Analyzer.",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-or-later",
+  "scripts": {
+    "build": "tsc -p tsconfig.json && vite build && node ../../scripts/check-desktop-shell.mjs",
+    "dev": "vite --host 127.0.0.1",
+    "verify-shell": "node ../../scripts/check-desktop-shell.mjs",
+    "tauri:dev": "tauri dev",
+    "tauri:build": "tauri build --bundles app"
+  },
+  "dependencies": {
+    "@flavorpress/analyzer-core": "workspace:*",
+    "@tauri-apps/api": "2.10.1",
+    "lucide-react": "^0.542.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "2.10.1",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^5.0.0",
+    "vite": "^6.4.2"
+  }
+}

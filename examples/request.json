@@ -1,0 +1,19 @@
+{
+  "text": "This release note describes three specific editorial checks, two source-review steps, and one clear publishing action for the team. Editors should review the source evidence before publishing, add citations for launch timing, and simplify long sentences for faster scanning. The workflow asks each editor to compare the draft against the reference notes, flag unsupported factual claims, and record the final decision in the publishing checklist. If a claim depends on current product availability, pricing, or legal requirements, the editor should check the source on the same day the content is approved.",
+  "mode": "editorial",
+  "metadata": {
+    "languageHint": "en",
+    "genre": "article",
+    "audience": "editors",
+    "goal": "publish_ready_review",
+    "sources": [
+      "The release workflow asks editors to review source evidence before publishing, compare drafts against reference notes, and record final decisions in the publishing checklist.",
+      "The editorial checklist includes citation review, unsupported-claim review, freshness checks, and sentence-length review."
+    ]
+  },
+  "options": {
+    "includeSpans": true,
+    "includeRawMetrics": false,
+    "includeProofreading": true
+  }
+}

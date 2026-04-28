@@ -1,0 +1,12 @@
+{
+  "url": "https://example.com/",
+  "mode": "research",
+  "metadata": {
+    "languageHint": "en",
+    "genre": "article"
+  },
+  "options": {
+    "includeSpans": true,
+    "includeRawMetrics": true
+  }
+}

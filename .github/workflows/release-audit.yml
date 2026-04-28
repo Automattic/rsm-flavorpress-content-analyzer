@@ -1,0 +1,71 @@
+name: release-audit
+
+on:
+  release:
+    types:
+      - published
+      - edited
+  schedule:
+    - cron: "37 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+
+      - name: Verify release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          node <<'NODE'
+          const { spawnSync } = require("node:child_process");
+
+          function gh(args) {
+            const result = spawnSync("gh", args, { encoding: "utf8", env: process.env });
+            if (result.status !== 0) {
+              throw new Error(`${args.join(" ")} failed: ${(result.stderr || result.stdout).trim()}`);
+            }
+            return result.stdout.trim();
+          }
+
+          const eventName = process.env.GITHUB_EVENT_NAME;
+          let tags = [];
+
+          if (eventName === "release") {
+            tags = [process.env.RELEASE_TAG].filter(Boolean);
+          } else {
+            tags = JSON.parse(gh(["release", "list", "--limit", "100", "--json", "tagName"])).map((release) => release.tagName);
+          }
+
+          if (tags.length === 0) {
+            console.log("No releases found.");
+            process.exit(0);
+          }
+
+          const required = [
+            { label: "desktop DMG", test: (name) => name.endsWith(".dmg") },
+            { label: "WordPress ZIP", test: (name) => name.endsWith(".zip") },
+            { label: "CLI archive", test: (name) => /cli-v?[0-9].*[.]tar[.]gz$/u.test(name) },
+            { label: "release manifest", test: (name) => name === "release-manifest.json" },
+            { label: "checksums", test: (name) => name.endsWith(".sha256") },
+          ];
+
+          for (const tag of tags) {
+            const release = JSON.parse(gh(["release", "view", tag, "--json", "assets,tagName"]));
+            const assetNames = release.assets.map((asset) => asset.name);
+            const missing = required.filter((requirement) => !assetNames.some(requirement.test));
+            if (missing.length > 0) {
+              throw new Error(`Release ${tag} is missing: ${missing.map((item) => item.label).join(", ")}`);
+            }
+            console.log(`Release ${tag} has ${assetNames.length} assets and passed the asset audit.`);
+          }
+          NODE
+

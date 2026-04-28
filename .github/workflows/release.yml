@@ -1,0 +1,286 @@
+name: release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_ref:
+        description: Branch, commit, or tag to validate.
+        required: false
+        default: trunk
+        type: string
+      release_tag:
+        description: Release tag such as v0.1.0. Defaults to v<package-version>.
+        required: false
+        type: string
+      publish:
+        description: Create or update the GitHub Release.
+        required: true
+        type: boolean
+        default: false
+      require_trusted_desktop:
+        description: Require macOS signing, Gatekeeper, and notarization checks.
+        required: true
+        type: boolean
+        default: false
+  push:
+    tags:
+      - "v*"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'workflow_dispatch' && (inputs.release_tag || inputs.release_ref) || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: macos-14
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+      publish: ${{ steps.release.outputs.publish }}
+      artifact_name: ${{ steps.release.outputs.artifact_name }}
+      head_sha: ${{ steps.git_ref.outputs.head_sha }}
+      release_url: ${{ steps.release.outputs.release_url }}
+    steps:
+      - name: Validate manual release inputs
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_REF: ${{ inputs.release_ref }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [ -n "${RELEASE_REF:-}" ] && ! [[ "${RELEASE_REF}" =~ ^[A-Za-z0-9._/@+-]+$ ]]; then
+            echo "release_ref contains unsupported characters." >&2
+            exit 1
+          fi
+
+          if [ -n "${RELEASE_TAG:-}" ] && ! [[ "${RELEASE_TAG}" =~ ^v[0-9]+[.][0-9]+[.][0-9]+([-+][A-Za-z0-9._-]+)?$ ]]; then
+            echo "release_tag must look like v1.2.3, optionally with semver prerelease/build metadata." >&2
+            exit 1
+          fi
+
+      - name: Checkout tagged ref
+        if: github.event_name == 'push'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Checkout requested ref
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          ref: ${{ inputs.release_ref || inputs.release_tag }}
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Resolve release context
+        id: release
+        env:
+          RELEASE_PUBLISH: ${{ github.event_name == 'push' && 'true' || inputs.publish }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if [ "${GITHUB_EVENT_NAME}" = "push" ]; then
+            tag="${GITHUB_REF_NAME}"
+            publish="true"
+          else
+            tag="${RELEASE_TAG:-v${version}}"
+            publish="${RELEASE_PUBLISH:-false}"
+          fi
+
+          expected_tag="v${version}"
+          if [ "${tag}" != "${expected_tag}" ]; then
+            echo "Release tag ${tag} does not match package version ${version}." >&2
+            exit 1
+          fi
+
+          run_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          release_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${tag}"
+          artifact_name="content-analyzer-release-${tag}"
+
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+          echo "publish=${publish}" >> "${GITHUB_OUTPUT}"
+          echo "run_url=${run_url}" >> "${GITHUB_OUTPUT}"
+          echo "release_url=${release_url}" >> "${GITHUB_OUTPUT}"
+          echo "artifact_name=${artifact_name}" >> "${GITHUB_OUTPUT}"
+
+      - name: Capture git refs
+        id: git_ref
+        run: |
+          git fetch origin trunk --depth=1
+          head_sha="$(git rev-parse HEAD)"
+          echo "head_sha=${head_sha}" >> "${GITHUB_OUTPUT}"
+          if [ "${{ steps.release.outputs.publish }}" = "true" ] && ! git merge-base --is-ancestor "${head_sha}" origin/trunk; then
+            echo "Published releases must be built from a commit contained in origin/trunk." >&2
+            exit 1
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: 22
+
+      - name: Enable Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.10.0 --activate
+
+      - name: Setup Rust
+        run: rustup default stable
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Rust advisory scanner
+        run: cargo install cargo-audit --locked --force
+
+      - name: Run quality gate
+        run: pnpm check:quality
+
+      - name: Build desktop DMG
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: pnpm desktop:build:dmg
+
+      - name: Require trusted desktop distribution
+        if: steps.release.outputs.publish == 'true' || (github.event_name == 'workflow_dispatch' && inputs.require_trusted_desktop == true)
+        run: pnpm desktop:verify-dmg:trusted
+
+      - name: Build WordPress ZIP
+        run: pnpm plugin:zip
+
+      - name: Prepare release artifacts
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_URL: ${{ steps.release.outputs.release_url }}
+          RELEASE_RUN_URL: ${{ steps.release.outputs.run_url }}
+          RELEASE_HEAD_SHA: ${{ steps.git_ref.outputs.head_sha }}
+        run: |
+          mkdir -p .release/artifacts .release/metadata
+
+          cp apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg .release/artifacts/
+          cp plugins/wordpress/dist/*.zip .release/artifacts/
+
+          cli_archive=".release/artifacts/flavorpress-content-analyzer-cli-${RELEASE_TAG}.tar.gz"
+          tar -czf "${cli_archive}" \
+            LICENSE \
+            README.md \
+            package.json \
+            pnpm-lock.yaml \
+            pnpm-workspace.yaml \
+            apps/cli/package.json \
+            apps/cli/dist \
+            packages/analyzer-core/package.json \
+            packages/analyzer-core/dist
+
+          node <<'NODE'
+          const { createHash } = require("node:crypto");
+          const { readdirSync, readFileSync, statSync, writeFileSync } = require("node:fs");
+          const { join } = require("node:path");
+
+          const artifactDir = ".release/artifacts";
+          const artifacts = readdirSync(artifactDir)
+            .filter((name) => !name.endsWith(".sha256"))
+            .sort()
+            .map((name) => {
+              const path = join(artifactDir, name);
+              const bytes = readFileSync(path);
+              const sha256 = createHash("sha256").update(bytes).digest("hex");
+              writeFileSync(`${path}.sha256`, `${sha256}  ${name}\n`);
+              return {
+                name,
+                bytes: statSync(path).size,
+                sha256,
+              };
+            });
+
+          const manifest = {
+            tag: process.env.RELEASE_TAG,
+            headSha: process.env.RELEASE_HEAD_SHA,
+            releaseUrl: process.env.RELEASE_URL,
+            runUrl: process.env.RELEASE_RUN_URL,
+            generatedAt: new Date().toISOString(),
+            artifacts,
+          };
+          writeFileSync(".release/metadata/release-manifest.json", `${JSON.stringify(manifest, null, 2)}\n`);
+          NODE
+
+          cp .release/metadata/release-manifest.json .release/artifacts/
+
+      - name: Upload release artifacts for publishing
+        if: steps.release.outputs.publish == 'true'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+          name: ${{ steps.release.outputs.artifact_name }}
+          path: .release/artifacts/
+          if-no-files-found: error
+
+  publish-release:
+    if: needs.validate.outputs.publish == 'true'
+    needs:
+      - validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - name: Download release validation artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: ${{ needs.validate.outputs.artifact_name }}
+          path: .release/artifacts
+
+      - name: Create release notes
+        run: |
+          cat > .release/release-notes.md <<'NOTES'
+          Local-first content analysis release.
+
+          Artifacts include the macOS desktop DMG, the WordPress plugin ZIP, a CLI archive, checksums, and a release manifest.
+          NOTES
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          tag="${{ needs.validate.outputs.tag }}"
+          title="FlavorPress Content Analyzer ${tag}"
+
+          if gh release view "${tag}" >/dev/null 2>&1; then
+            gh release edit "${tag}" --title "${title}" --notes-file .release/release-notes.md --target "${{ needs.validate.outputs.head_sha }}"
+            gh release upload "${tag}" .release/artifacts/* --clobber
+          else
+            gh release create "${tag}" .release/artifacts/* --target "${{ needs.validate.outputs.head_sha }}" --title "${title}" --notes-file .release/release-notes.md
+          fi
+
+  attest-release:
+    if: needs.validate.outputs.publish == 'true' && vars.ENABLE_RELEASE_ATTESTATIONS == '1'
+    needs:
+      - validate
+      - publish-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      attestations: write
+      id-token: write
+    steps:
+      - name: Download release validation artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: ${{ needs.validate.outputs.artifact_name }}
+          path: .release/artifacts
+
+      - name: Attest release artifacts
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a
+        with:
+          subject-path: .release/artifacts/*

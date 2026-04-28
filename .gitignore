@@ -1,0 +1,13 @@
+.DS_Store
+.env
+.env.local
+node_modules/
+dist/
+coverage/
+content-analysis-output/
+reports/
+*.log
+*.tsbuildinfo
+apps/desktop/src-tauri/target/
+apps/desktop/src-tauri/gen/
+flavorpress-content-analyzer-wordpress.zip

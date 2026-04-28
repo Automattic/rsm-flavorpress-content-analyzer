@@ -1,0 +1,18 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "flavorpress/content-analyzer",
+  "version": "0.1.0",
+  "title": "Content Analyzer",
+  "category": "widgets",
+  "icon": "analytics",
+  "description": "Render a public local content-analysis form.",
+  "textdomain": "flavorpress-content-analyzer",
+  "editorScript": "fpca-editor",
+  "viewScript": "fpca-frontend",
+  "editorStyle": "fpca-styles",
+  "style": "fpca-styles",
+  "supports": {
+    "html": false
+  }
+}

@@ -161,6 +161,8 @@ test("WordPress editor preserves block structure before analysis", () => {
   const blockSource = readFileSync(new URL("../plugins/wordpress/src/block.ts", import.meta.url), "utf8");
 
   assert.match(blockSource, /function stripEditorMarkup/);
+  assert.match(blockSource, /<script\\b/);
+  assert.match(blockSource, /<\\\/script\\s\*>/);
   assert.match(blockSource, /<li\[\^>\]\*>/);
   assert.match(blockSource, /"#"\.repeat/);
   assert.match(blockSource, /\\n\{3,\}/);

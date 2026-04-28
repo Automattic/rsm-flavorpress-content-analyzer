@@ -164,8 +164,8 @@ function analysisContext(overrides: Partial<AnalysisContext>): AnalysisContext {
 function stripEditorMarkup(value: string): string {
   const withStructure = value
     .replace(/<!--[\s\S]*?-->/g, " ")
-    .replace(/<script[\s\S]*?<\/script>/giu, " ")
-    .replace(/<style[\s\S]*?<\/style>/giu, " ")
+    .replace(/<script\b[\s\S]*?<\/script\s*>/giu, " ")
+    .replace(/<style\b[\s\S]*?<\/style\s*>/giu, " ")
     .replace(/<br\s*\/?>/giu, "\n")
     .replace(/<li[^>]*>/giu, "\n- ")
     .replace(/<h([1-6])[^>]*>/giu, (_match, level: string) => `\n${"#".repeat(Number(level))} `)

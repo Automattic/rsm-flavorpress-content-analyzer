@@ -2643,7 +2643,7 @@
     };
   }
   function stripEditorMarkup(value) {
-    const withStructure = value.replace(/<!--[\s\S]*?-->/g, " ").replace(/<script[\s\S]*?<\/script>/giu, " ").replace(/<style[\s\S]*?<\/style>/giu, " ").replace(/<br\s*\/?>/giu, "\n").replace(/<li[^>]*>/giu, "\n- ").replace(/<h([1-6])[^>]*>/giu, (_match, level) => `
+    const withStructure = value.replace(/<!--[\s\S]*?-->/g, " ").replace(/<script\b[\s\S]*?<\/script\s*>/giu, " ").replace(/<style\b[\s\S]*?<\/style\s*>/giu, " ").replace(/<br\s*\/?>/giu, "\n").replace(/<li[^>]*>/giu, "\n- ").replace(/<h([1-6])[^>]*>/giu, (_match, level) => `
 ${"#".repeat(Number(level))} `).replace(/<\/(?:p|div|section|article|main|blockquote|li|ul|ol|h[1-6])>/giu, "\n");
     return withStructure.replace(/<[^>]+>/g, " ").replace(/\u00a0/g, " ").replace(/[ \t]+/g, " ").replace(/[ \t]*\n[ \t]*/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
   }

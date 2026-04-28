@@ -174,12 +174,12 @@ function htmlTitle(html: string): string | undefined {
 function removeNonContent(html: string): string {
   return html
     .replace(/<!--[\s\S]*?-->/gu, " ")
-    .replace(/<script[\s\S]*?<\/script>/giu, " ")
-    .replace(/<style[\s\S]*?<\/style>/giu, " ")
-    .replace(/<noscript[\s\S]*?<\/noscript>/giu, " ")
-    .replace(/<svg[\s\S]*?<\/svg>/giu, " ")
-    .replace(/<template[\s\S]*?<\/template>/giu, " ")
-    .replace(/<(?:nav|header|footer|aside|form|button|iframe|canvas)[\s\S]*?<\/(?:nav|header|footer|aside|form|button|iframe|canvas)>/giu, " ");
+    .replace(/<script\b[\s\S]*?<\/script\s*>/giu, " ")
+    .replace(/<style\b[\s\S]*?<\/style\s*>/giu, " ")
+    .replace(/<noscript\b[\s\S]*?<\/noscript\s*>/giu, " ")
+    .replace(/<svg\b[\s\S]*?<\/svg\s*>/giu, " ")
+    .replace(/<template\b[\s\S]*?<\/template\s*>/giu, " ")
+    .replace(/<(nav|header|footer|aside|form|button|iframe|canvas)\b[\s\S]*?<\/\1\s*>/giu, " ");
 }
 
 function textFromHtmlFragment(fragment: string): string {

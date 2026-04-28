@@ -501,6 +501,26 @@ test("URL extraction resolves relative redirects and decodes readable HTML entit
   });
 });
 
+test("URL extraction removes non-content tags with spaced end tags", async () => {
+  await withMockFetch(async () =>
+    mockResponse(
+      "<html><body><article><h1>Useful article</h1><script>hidden launch token</script ><style>.secret{display:block}</style ><p>Visible editorial guidance for reviewers.</p></article></body></html>",
+      {
+        status: 200,
+        headers: {
+          "content-type": "text/html",
+        },
+      },
+      "https://example.com/spaced-tags",
+    ), async () => {
+    const extracted = await extractTextFromUrl({ url: "https://example.com/spaced-tags" });
+
+    assert.match(extracted.text, /Useful article/);
+    assert.match(extracted.text, /Visible editorial guidance/);
+    assert.doesNotMatch(extracted.text, /hidden launch token|secret/);
+  });
+});
+
 test("URL extraction prefers readable article body over page chrome", async () => {
   await withMockFetch(async () =>
     mockResponse(

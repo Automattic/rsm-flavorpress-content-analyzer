@@ -143,18 +143,21 @@ jobs:
         run: pnpm check:quality
 
       - name: Build desktop DMG
+        if: steps.release.outputs.publish != 'true' && !(github.event_name == 'workflow_dispatch' && inputs.require_trusted_desktop == true)
+        run: pnpm desktop:build:dmg
+
+      - name: Build trusted desktop DMG
+        if: steps.release.outputs.publish == 'true' || (github.event_name == 'workflow_dispatch' && inputs.require_trusted_desktop == true)
         env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+          APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+          APPLE_API_KEY_PATH: ${{ secrets.APPLE_API_KEY_PATH }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: pnpm desktop:build:dmg
-
-      - name: Require trusted desktop distribution
-        if: steps.release.outputs.publish == 'true' || (github.event_name == 'workflow_dispatch' && inputs.require_trusted_desktop == true)
-        run: pnpm desktop:verify-dmg:trusted
+          FLAVORPRESS_APPROVE_DESKTOP_SIGNING: ${{ secrets.FLAVORPRESS_APPROVE_DESKTOP_SIGNING }}
+        run: pnpm desktop:build:dmg:trusted
 
       - name: Build WordPress ZIP
         run: pnpm plugin:zip
